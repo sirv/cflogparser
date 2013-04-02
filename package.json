@@ -22,18 +22,18 @@
         "start": "node app.js"
     },
     "bugs": {
-        "url": "https://github.com/magictoolbox/cflogparser/issues"
+        "url": "https://github.com/sirv/cflogparser/issues"
     },
     "readmeFilename": "README.md",
     "repository": {
         "type": "git",
-        "url": "git://github.com/magictoolbox/cflogparser.git"
+        "url": "git://github.com/sirv/cflogparser.git"
     },
     "keywords": [
         "log parser",
         "logs",
         "cloudfront",
-        "magictoolbox",
+        "sirv",
         "elasticsearch"
     ],
     "license": "MIT"
