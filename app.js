@@ -44,37 +44,64 @@ Application = function(){
     this.parser.parse();
 }
 
-Application.prototype.processLogs = function(logs){
-    console.log('Parsed messages: ' + logs.length);
-
-    var messages = [];
+Application.prototype.processLogs = function(data){
 
     this.rotateIndex();
 
-    _.each(logs, function (msg) {
+    var total = 0;
 
-        msg.timestamp = new Date(msg['date'] + 'T' + msg['time']).getTime();
-        msg.parsedTs = Date.now();
+    _.each(data, function(filedata){
 
-        messages.push({
-            create: {
-                index: this.indexName,
-                type: 'log',
-                data: msg
-            }
-        });
+        if(filedata.err){
+            console.error('Error: [' + obj.basename +']: ' + err);
+            this.parser.failed(filedata.obj);
+            return;
+        }
+
+        if(filedata.logs == null){
+            return;
+        }
+
+        total += filedata.logs.length;
+
+        var messages = [];
+
+        _.each(filedata.logs, function (msg) {
+
+            msg.timestamp = new Date(msg['date'] + 'T' + msg['time']).getTime();
+            msg.parsedTs = Date.now();
+
+            messages.push({
+                create: {
+                    index: this.indexName,
+                    type: 'log',
+                    data: msg
+                }
+            });
+
+        }.bind(this))
+
+        if(messages.length > 0){
+            this.elasticClient.bulk(messages, function(err, res){
+                if (err) {
+                    console.error('ElasticSearch.bulk() failed: ' + err);
+                    console.log('[' + filedata.obj.basename +'] [' + filedata.logs.length + ']: will try to parse it again in next turn');
+                    return;
+                }
+
+                console.log('[' + filedata.obj.basename +'] messages: ' +  filedata.logs.length);
+
+                // its ok, backup it
+                this.parser.backup(filedata.obj);
+
+            }.bind(this));
+        }
 
     }.bind(this))
 
-    if(logs.length > 0){
-        this.elasticClient.bulk(messages, function(err, res){
-            if (err) {
-                console.error('ElasticSearch.bulk() failed: ' + err);
-            }
-        }.bind(this));
-    }
+    console.log('Parsed messages: ' + total);
 
-    if(logs.length == 0){
+    if(total == 0){
         if(this.dynamicDelay < 600){
             this.dynamicDelay *= 2;
             console.log('Increasing delay to ' + this.dynamicDelay + ' secs');
@@ -120,3 +147,13 @@ Application.prototype.rotateIndex = function () {
 }
 
 var app = new Application();
+
+// register exit handlers so that process.on('exit') works
+var exitFunc = function(){
+    console.log('Shutting down..');
+    process.exit(0);
+}
+
+process.on('SIGINT', exitFunc);
+process.on('SIGTERM', exitFunc);
+
