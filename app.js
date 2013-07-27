@@ -53,7 +53,7 @@ Application.prototype.processLogs = function(data){
     _.each(data, function(filedata){
 
         if(filedata.err){
-            console.error('Error: [' + obj.basename +']: ' + err);
+            console.error('Error: [' + filedata.obj.basename +']: ' + filedata.err);
             this.parser.failed(filedata.obj);
             return;
         }
